@@ -1,5 +1,7 @@
 package org.yearup.data.mysql;
 
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 import org.yearup.data.CategoryDao;
 import org.yearup.models.Category;
@@ -12,58 +14,73 @@ import java.util.List;
 @Component
 public class MySqlCategoryDao extends MySqlDaoBase implements CategoryDao
 {
+    private final JdbcTemplate jdbcTemplate;
+
     public MySqlCategoryDao(DataSource dataSource)
     {
         super(dataSource);
+        this.jdbcTemplate = new JdbcTemplate(dataSource);
     }
 
     @Override
     public List<Category> getAllCategories()
     {
-        // get all categories
-        return null;
+        String sql = "SELECT category_id, name, description FROM categories";
+        return jdbcTemplate.query(sql, this::mapRow);
     }
 
     @Override
     public Category getById(int categoryId)
     {
-        // get category by id
-        return null;
+        String sql = "SELECT category_id, name, description FROM categories WHERE category_id = ?";
+        List<Category> results = jdbcTemplate.query(sql, this::mapRow, categoryId);
+
+        if (results.isEmpty())
+            return null;
+
+        return results.get(0);
     }
 
     @Override
     public Category create(Category category)
     {
-        // create a new category
-        return null;
+        String sql = "INSERT INTO categories (name, description) VALUES (?, ?)";
+
+        jdbcTemplate.update(sql,
+                category.getName(),
+                category.getDescription());
+
+        // Get the newly created category (assuming auto-increment id)
+        // This is a simple approach; if your DB supports RETURNING, use that instead.
+        String sqlLastId = "SELECT LAST_INSERT_ID()";
+        Integer id = jdbcTemplate.queryForObject(sqlLastId, Integer.class);
+        category.setCategoryId(id);
+        return category;
     }
 
     @Override
     public void update(int categoryId, Category category)
     {
-        // update category
+        String sql = "UPDATE categories SET name = ?, description = ? WHERE category_id = ?";
+        jdbcTemplate.update(sql,
+                category.getName(),
+                category.getDescription(),
+                categoryId);
     }
 
     @Override
     public void delete(int categoryId)
     {
-        // delete category
+        String sql = "DELETE FROM categories WHERE category_id = ?";
+        jdbcTemplate.update(sql, categoryId);
     }
 
-    private Category mapRow(ResultSet row) throws SQLException
+    private Category mapRow(ResultSet row, int rowNum) throws SQLException
     {
-        int categoryId = row.getInt("category_id");
-        String name = row.getString("name");
-        String description = row.getString("description");
-
-        Category category = new Category()
-        {{
-            setCategoryId(categoryId);
-            setName(name);
-            setDescription(description);
-        }};
-
+        Category category = new Category();
+        category.setCategoryId(row.getInt("category_id"));
+        category.setName(row.getString("name"));
+        category.setDescription(row.getString("description"));
         return category;
     }
-
 }
