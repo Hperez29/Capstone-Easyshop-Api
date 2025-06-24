@@ -25,7 +25,6 @@ import org.yearup.security.jwt.TokenProvider;
 
 @RestController
 @CrossOrigin
-@RequestMapping("/auth")
 @PreAuthorize("permitAll()")
 public class AuthenticationController
 {
@@ -71,9 +70,10 @@ public class AuthenticationController
         }
     }
 
-    @PostMapping("/register")
+    @PostMapping("/Register")
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<User> register(@Valid @RequestBody RegisterUserDto newUser)
+    @RequestMapping(value = "/register", method = RequestMethod.POST)
+    public ResponseEntity<User> Register(@Valid @RequestBody RegisterUserDto newUser)
     {
         try {
             if (userDao.exists(newUser.getUsername())) {
@@ -90,5 +90,4 @@ public class AuthenticationController
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Registration failed.");
         }
-    }
-}
+    }}

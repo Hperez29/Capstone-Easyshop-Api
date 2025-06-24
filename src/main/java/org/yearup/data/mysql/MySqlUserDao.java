@@ -20,7 +20,6 @@ public class MySqlUserDao extends MySqlDaoBase implements UserDao
         super(dataSource);
     }
 
-
     @Override
     public User create(User newUser)
     {
@@ -34,13 +33,21 @@ public class MySqlUserDao extends MySqlDaoBase implements UserDao
             ps.setString(2, hashedPassword);
             ps.setString(3, newUser.getRole());
 
-            ps.executeUpdate();
+            int affectedRows = ps.executeUpdate();
 
-            User user = getByUserName(newUser.getUsername());
-            user.setPassword("");
+            if (affectedRows == 0) {
+                throw new SQLException("Creating user failed, no rows affected.");
+            }
 
-            return user;
-
+            try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    int newId = generatedKeys.getInt(1);
+                    // Return new User with generated ID and empty password for security
+                    return new User(newId, newUser.getUsername(), "", newUser.getRole());
+                } else {
+                    throw new SQLException("Creating user failed, no ID obtained.");
+                }
+            }
         }
         catch (SQLException e)
         {
@@ -113,7 +120,6 @@ public class MySqlUserDao extends MySqlDaoBase implements UserDao
             ResultSet row = statement.executeQuery();
             if(row.next())
             {
-
                 User user = mapRow(row);
                 return user;
             }
@@ -153,6 +159,6 @@ public class MySqlUserDao extends MySqlDaoBase implements UserDao
         String hashedPassword = row.getString("hashed_password");
         String role = row.getString("role");
 
-        return new User(userId, username,hashedPassword, role);
+        return new User(userId, username, hashedPassword, role);
     }
 }
