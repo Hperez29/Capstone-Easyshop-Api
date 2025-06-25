@@ -52,6 +52,7 @@ public class CategoriesController
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.CREATED) // ✅ fixes 200 -> 201 bug
     public Category addCategory(@RequestBody Category category)
     {
         return categoryDao.create(category);
@@ -72,8 +73,10 @@ public class CategoriesController
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT) // ✅ fixes 404 -> 204 bug
     public void deleteCategory(@PathVariable int id)
     {
+        // Optional: you can remove the check if your DAO handles it gracefully
         Category existing = categoryDao.getById(id);
         if (existing == null)
         {
