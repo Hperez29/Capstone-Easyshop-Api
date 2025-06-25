@@ -1,8 +1,8 @@
 package org.yearup.data.mysql;
 
 import org.springframework.stereotype.Component;
-import org.yearup.models.Product;
 import org.yearup.data.ProductDao;
+import org.yearup.models.Product;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
@@ -23,15 +23,16 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao
     {
         List<Product> products = new ArrayList<>();
 
-        String sql = "SELECT * FROM products " +
-                "WHERE (category_id = ? OR ? = -1) " +
-                "   AND (price <= ? OR ? = -1) " +
-                "   AND (color = ? OR ? = '') ";
+        categoryId = (categoryId == null) ? -1 : categoryId;
+        minPrice = (minPrice == null) ? new BigDecimal("-1") : minPrice;
+        maxPrice = (maxPrice == null) ? new BigDecimal("-1") : maxPrice;
+        color = (color == null) ? "" : color;
 
-        categoryId = categoryId == null ? -1 : categoryId;
-        minPrice = minPrice == null ? new BigDecimal("-1") : minPrice;
-        maxPrice = maxPrice == null ? new BigDecimal("-1") : maxPrice;
-        color = color == null ? "" : color;
+        String sql = "SELECT * FROM products " +
+                "WHERE (? = -1 OR category_id = ?) " +
+                "AND (? = -1 OR price >= ?) " +
+                "AND (? = -1 OR price <= ?) " +
+                "AND (? = '' OR color = ?)";
 
         try (Connection connection = getConnection())
         {
@@ -40,8 +41,10 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao
             statement.setInt(2, categoryId);
             statement.setBigDecimal(3, minPrice);
             statement.setBigDecimal(4, minPrice);
-            statement.setString(5, color);
-            statement.setString(6, color);
+            statement.setBigDecimal(5, maxPrice);
+            statement.setBigDecimal(6, maxPrice);
+            statement.setString(7, color);
+            statement.setString(8, color);
 
             ResultSet row = statement.executeQuery();
 
@@ -63,9 +66,7 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao
     public List<Product> listByCategoryId(int categoryId)
     {
         List<Product> products = new ArrayList<>();
-
-        String sql = "SELECT * FROM products " +
-                    " WHERE category_id = ? ";
+        String sql = "SELECT * FROM products WHERE category_id = ?";
 
         try (Connection connection = getConnection())
         {
@@ -88,11 +89,11 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao
         return products;
     }
 
-
     @Override
     public Product getById(int productId)
     {
         String sql = "SELECT * FROM products WHERE product_id = ?";
+
         try (Connection connection = getConnection())
         {
             PreparedStatement statement = connection.prepareStatement(sql);
@@ -109,15 +110,15 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao
         {
             throw new RuntimeException(e);
         }
+
         return null;
     }
 
     @Override
     public Product create(Product product)
     {
-
         String sql = "INSERT INTO products(name, price, category_id, description, color, image_url, stock, featured) " +
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection connection = getConnection())
         {
@@ -133,16 +134,13 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao
 
             int rowsAffected = statement.executeUpdate();
 
-            if (rowsAffected > 0) {
-                // Retrieve the generated keys
+            if (rowsAffected > 0)
+            {
                 ResultSet generatedKeys = statement.getGeneratedKeys();
-
-                if (generatedKeys.next()) {
-                    // Retrieve the auto-incremented ID
-                    int orderId = generatedKeys.getInt(1);
-
-                    // get the newly inserted category
-                    return getById(orderId);
+                if (generatedKeys.next())
+                {
+                    int productId = generatedKeys.getInt(1);
+                    return getById(productId);
                 }
             }
         }
@@ -150,21 +148,19 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao
         {
             throw new RuntimeException(e);
         }
+
         return null;
     }
 
     @Override
     public void delete(int productId)
     {
-
-        String sql = "DELETE FROM products " +
-                " WHERE product_id = ?;";
+        String sql = "DELETE FROM products WHERE product_id = ?";
 
         try (Connection connection = getConnection())
         {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setInt(1, productId);
-
             statement.executeUpdate();
         }
         catch (SQLException e)
