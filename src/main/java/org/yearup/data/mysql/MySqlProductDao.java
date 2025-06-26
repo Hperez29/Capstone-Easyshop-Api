@@ -23,35 +23,46 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao
     {
         List<Product> products = new ArrayList<>();
 
-        categoryId = (categoryId == null) ? -1 : categoryId;
-        minPrice = (minPrice == null) ? new BigDecimal("-1") : minPrice;
-        maxPrice = (maxPrice == null) ? new BigDecimal("-1") : maxPrice;
-        color = (color == null) ? "" : color;
+        StringBuilder sql = new StringBuilder("SELECT * FROM products WHERE 1=1");
+        List<Object> params = new ArrayList<>();
 
-        String sql = "SELECT * FROM products " +
-                "WHERE (? = -1 OR category_id = ?) " +
-                "AND (? = -1 OR price >= ?) " +
-                "AND (? = -1 OR price <= ?) " +
-                "AND (? = '' OR color = ?)";
+        if (categoryId != null && categoryId != -1)
+        {
+            sql.append(" AND category_id = ?");
+            params.add(categoryId);
+        }
+
+        if (minPrice != null && minPrice.compareTo(new BigDecimal("-1")) != 0)
+        {
+            sql.append(" AND price >= ?");
+            params.add(minPrice);
+        }
+
+        if (maxPrice != null && maxPrice.compareTo(new BigDecimal("-1")) != 0)
+        {
+            sql.append(" AND price <= ?");
+            params.add(maxPrice);
+        }
+
+        if (color != null && !color.isEmpty())
+        {
+            sql.append(" AND color = ?");
+            params.add(color);
+        }
 
         try (Connection connection = getConnection())
         {
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setInt(1, categoryId);
-            statement.setInt(2, categoryId);
-            statement.setBigDecimal(3, minPrice);
-            statement.setBigDecimal(4, minPrice);
-            statement.setBigDecimal(5, maxPrice);
-            statement.setBigDecimal(6, maxPrice);
-            statement.setString(7, color);
-            statement.setString(8, color);
+            PreparedStatement statement = connection.prepareStatement(sql.toString());
+            for (int i = 0; i < params.size(); i++)
+            {
+                statement.setObject(i + 1, params.get(i));
+            }
 
             ResultSet row = statement.executeQuery();
 
             while (row.next())
             {
-                Product product = mapRow(row);
-                products.add(product);
+                products.add(mapRow(row));
             }
         }
         catch (SQLException e)
@@ -77,8 +88,7 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao
 
             while (row.next())
             {
-                Product product = mapRow(row);
-                products.add(product);
+                products.add(mapRow(row));
             }
         }
         catch (SQLException e)
@@ -150,6 +160,34 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao
         }
 
         return null;
+    }
+
+    @Override
+    public void update(Product product)
+    {
+        String sql = "UPDATE products SET " +
+                "name = ?, price = ?, category_id = ?, description = ?, color = ?, image_url = ?, stock = ?, featured = ? " +
+                "WHERE product_id = ?";
+
+        try (Connection connection = getConnection())
+        {
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, product.getName());
+            statement.setBigDecimal(2, product.getPrice());
+            statement.setInt(3, product.getCategoryId());
+            statement.setString(4, product.getDescription());
+            statement.setString(5, product.getColor());
+            statement.setString(6, product.getImageUrl());
+            statement.setInt(7, product.getStock());
+            statement.setBoolean(8, product.isFeatured());
+            statement.setInt(9, product.getProductId());
+
+            statement.executeUpdate();
+        }
+        catch (SQLException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

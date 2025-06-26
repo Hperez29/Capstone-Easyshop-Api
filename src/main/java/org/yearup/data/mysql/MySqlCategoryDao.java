@@ -1,7 +1,6 @@
 package org.yearup.data.mysql;
 
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 import org.yearup.data.CategoryDao;
 import org.yearup.models.Category;
@@ -50,8 +49,6 @@ public class MySqlCategoryDao extends MySqlDaoBase implements CategoryDao
                 category.getName(),
                 category.getDescription());
 
-        // Get the newly created category (assuming auto-increment id)
-        // This is a simple approach; if your DB supports RETURNING, use that instead.
         String sqlLastId = "SELECT LAST_INSERT_ID()";
         Integer id = jdbcTemplate.queryForObject(sqlLastId, Integer.class);
         category.setCategoryId(id);
