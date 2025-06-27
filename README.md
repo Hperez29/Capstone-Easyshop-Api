@@ -2,6 +2,8 @@
 YearUp Capstone 
 
 🔍 Challenging Code Snippet: Flexible Product Search
+java type 
+
 @GetMapping("")
 @PreAuthorize("permitAll()")
 public List<Product> search(@RequestParam(name = "cat", required = false) Integer categoryId,
